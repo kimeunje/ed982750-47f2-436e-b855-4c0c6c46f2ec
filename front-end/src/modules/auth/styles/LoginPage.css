@@ -1,0 +1,310 @@
+/* 메인 컨테이너 */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 114px);
+  padding: 20px;
+  background-color: var(--bright-bg);
+  width: 100%;
+}
+
+.login-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 30px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  border: 1px solid #e0e4e9;
+  transition: transform 0.3s ease;
+}
+
+.login-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* 헤더 */
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--dark-blue);
+  margin-bottom: 8px;
+}
+
+.login-header p {
+  font-size: 16px;
+  color: #6b7280;
+}
+
+/* 메시지 */
+.error-message {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border-left: 4px solid #ef4444;
+}
+
+.success-message {
+  background-color: #ecfdf5;
+  color: #047857;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border-left: 4px solid #10b981;
+}
+
+/* 폼 */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dark-blue);
+}
+
+.form-group input {
+  padding: 12px 16px;
+  border: 1px solid #e0e4e9;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  background-color: var(--subtle-blue);
+}
+
+.form-group input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(64, 86, 183, 0.2);
+  background-color: white;
+}
+
+/* IP 인증 카드 */
+.ip-info-card {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--subtle-blue), #f0f7ff);
+  border: 1px solid #e0e4e9;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.ip-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--primary-color), var(--dark-blue));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-right: 20px;
+  flex-shrink: 0;
+}
+
+.ip-info h3 {
+  margin: 0 0 8px 0;
+  color: var(--dark-blue);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.ip-info p {
+  margin: 4px 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.ip-description {
+  font-size: 0.875rem !important;
+  opacity: 0.8;
+}
+
+/* IP 도움말 */
+.ip-help {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.help-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.help-item:last-child {
+  margin-bottom: 0;
+}
+
+.help-item svg {
+  margin-top: 2px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.help-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* 이메일 인증 */
+.verification-info {
+  background-color: var(--subtle-blue);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.verification-info p {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.verification-info strong {
+  color: var(--dark-blue);
+}
+
+.user-info {
+  background-color: #f0f7ff;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 12px 0 0 0;
+}
+
+.user-info p {
+  margin: 4px 0;
+  font-size: 0.875rem;
+  color: var(--dark-blue);
+}
+
+.ip-info-small {
+  font-size: 0.8rem !important;
+  color: #6b7280 !important;
+  font-family: monospace;
+}
+
+.verification-options {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.text-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 0;
+  font-weight: 500;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+
+.text-button:hover {
+  color: var(--dark-blue);
+  text-decoration: underline;
+}
+
+.text-button:disabled {
+  color: var(--gray);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* 버튼 */
+.login-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-button:hover:not(:disabled) {
+  background-color: var(--dark-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(64, 86, 183, 0.3);
+}
+
+.login-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 30px 20px;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-header h1 {
+    font-size: 20px;
+  }
+
+  .ip-info-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .ip-icon {
+    margin-right: 0;
+    margin-bottom: 16px;
+  }
+
+  .verification-options {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .text-button {
+    text-align: center;
+  }
+}

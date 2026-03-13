@@ -1,0 +1,9 @@
+/logs
+/__pycache__
+/app/__pycache__
+/app/controllers/__pycache__
+/app/services/__pycache__
+/app/utils/__pycache__
+/app/static
+/app/templates
+/app/static_backup
