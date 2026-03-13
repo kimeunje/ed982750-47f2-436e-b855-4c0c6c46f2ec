@@ -30,7 +30,7 @@ class Config:
         "host": os.environ.get('DB_HOST', 'localhost'),
         "port": int(os.environ.get('DB_PORT', 3306)),
         "user": os.environ.get('DB_USER', 'root'),
-        "password": os.environ.get('DB_PASSWORD', '1234'),
+        "password": os.environ.get('DB_PASSWORD', 'dnb123!!'),
         "db": os.environ.get('DB_NAME', 'audit_management'),
         "charset": "utf8mb4",
         "use_unicode": True,

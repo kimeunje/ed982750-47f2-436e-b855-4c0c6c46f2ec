@@ -749,14 +749,8 @@ def _get_filtered_users_with_training_penalty(
             total_penalty = user["total_penalty"]
             if total_penalty == 0:
                 user["risk_level"] = "low"
-            elif total_penalty <= 0.5:
-                user["risk_level"] = "low"
-            elif total_penalty <= 2.0:
-                user["risk_level"] = "medium"
-            elif total_penalty <= 5.0:
-                user["risk_level"] = "high"
             else:
-                user["risk_level"] = "critical"
+                user["risk_level"] = "high"
 
             # 날짜 포맷팅
             if user.get("last_calculated"):

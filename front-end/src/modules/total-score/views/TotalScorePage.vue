@@ -18,7 +18,7 @@
     <!-- 보안 점수 데이터 -->
     <div v-else-if="scoreData" class="score-content">
       <!-- 2. 종합 점수 카드 -->
-      <div class="overall-score-card">
+      <div class="overall-score-card" :class="getRiskLevel()">
         <div class="score-circle">
           <div class="circle-chart" :class="getRiskLevel()">
             <div class="circle-score">
@@ -32,24 +32,31 @@
         <div class="score-summary">
           <h2>{{ selectedYear }}년 보안 미흡 현황</h2>
           <p class="score-description">
-            총 <strong>{{ getTotalCount() }}건</strong>의 보안 미흡 사항이 있습니다.
+            <template v-if="getTotalCount() === 0">
+              보안 미흡 사항이 없습니다.
+            </template>
+            <template v-else>
+              총 <strong>{{ getTotalCount() }}건</strong>의 보안 미흡 사항이 있습니다.
+            </template>
           </p>
 
-          <div class="score-details">
+          <div v-if="getTotalCount() > 0" class="score-details">
             <div class="detail-item">
               <span class="detail-label">정보보안 감사</span>
-              <span class="detail-value penalty">{{ getAuditTotalCount() }}건</span>
+              <span class="detail-value" :class="{ 'penalty-active': getAuditTotalCount() > 0 }">
+                {{ getAuditTotalCount() }}건
+              </span>
             </div>
             <div class="detail-item">
               <span class="detail-label">정보보호 교육</span>
-              <span class="detail-value penalty">
+              <span class="detail-value" :class="{ 'penalty-active': (scoreData.education_stats?.periods_with_incomplete || scoreData.education_stats?.incomplete_count || 0) > 0 }">
                 {{ scoreData.education_stats?.periods_with_incomplete ||
                    scoreData.education_stats?.incomplete_count || 0 }}건
               </span>
             </div>
             <div class="detail-item">
               <span class="detail-label">악성메일 모의훈련</span>
-              <span class="detail-value penalty">
+              <span class="detail-value" :class="{ 'penalty-active': (scoreData.training_stats?.failed_count || 0) > 0 }">
                 {{ scoreData.training_stats?.failed_count || 0 }}건
               </span>
             </div>
@@ -298,19 +305,15 @@ const getPassRate = (stats) => {
 
 const getRiskLevel = () => {
   const totalCount = getTotalCount()
-  if (totalCount === 0) return 'low'
-  if (totalCount <= 3) return 'medium'
-  if (totalCount <= 6) return 'high'
-  return 'critical'
+  if (totalCount === 0) return 'low'   // 0건: 우수
+  return 'high'                         // 1건+: 위험 (KPI 감점 발생)
 }
 
 const getRiskLevelLabel = () => {
   const level = getRiskLevel()
   const labels = {
     low: '우수',
-    medium: '주의',
-    high: '위험',
-    critical: '매우 위험'
+    high: '위험'
   }
   return labels[level] || '미평가'
 }

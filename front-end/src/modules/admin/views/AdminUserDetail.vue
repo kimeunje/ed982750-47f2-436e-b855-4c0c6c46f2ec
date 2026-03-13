@@ -106,7 +106,7 @@
       </div>
 
       <!-- 2. 종합 점수 카드 -->
-      <div class="overall-score-card">
+      <div class="overall-score-card" :class="getRiskLevel()">
         <div class="score-circle">
           <div class="circle-chart" :class="getRiskLevel()">
             <div class="circle-score">
@@ -120,21 +120,32 @@
         <div class="score-summary">
           <h2>총 감점</h2>
           <p class="score-description">
-            KPI 기준 최대 5점 감점 중 <strong>{{ getTotalPenalty() }}점</strong>이 감점되었습니다.
+            <template v-if="getTotalPenalty() === '0.0'">
+              KPI 감점 사항이 없습니다.
+            </template>
+            <template v-else>
+              KPI 기준 최대 5점 감점 중 <strong>{{ getTotalPenalty() }}점</strong>이 감점되었습니다.
+            </template>
           </p>
 
-          <div class="score-details">
+          <div v-if="getTotalPenalty() !== '0.0'" class="score-details">
             <div class="detail-item">
               <span class="detail-label">보안 감사</span>
-              <span class="detail-value penalty">-{{ getAuditPenalty() }}점</span>
+              <span class="detail-value" :class="{ 'penalty-active': getAuditPenalty() !== '0.0' }">
+                -{{ getAuditPenalty() }}점
+              </span>
             </div>
             <div class="detail-item">
               <span class="detail-label">정보보호 교육</span>
-              <span class="detail-value penalty">-{{ getEducationPenalty() }}점</span>
+              <span class="detail-value" :class="{ 'penalty-active': getEducationPenalty() !== '0.0' }">
+                -{{ getEducationPenalty() }}점
+              </span>
             </div>
             <div class="detail-item">
               <span class="detail-label">모의훈련</span>
-              <span class="detail-value penalty">-{{ getTrainingPenalty() }}점</span>
+              <span class="detail-value" :class="{ 'penalty-active': getTrainingPenalty() !== '0.0' }">
+                -{{ getTrainingPenalty() }}점
+              </span>
             </div>
           </div>
         </div>
@@ -532,19 +543,15 @@ const getTrainingStats = () => {
 
 const getRiskLevel = () => {
   const totalPenalty = parseFloat(getTotalPenalty())
-  if (totalPenalty === 0) return 'low'
-  if (totalPenalty <= 1.0) return 'medium'
-  if (totalPenalty <= 2.0) return 'high'
-  return 'critical'
+  if (totalPenalty === 0) return 'low'   // 감점 0: 우수
+  return 'high'                           // 감점 > 0: 위험
 }
 
 const getRiskLevelLabel = () => {
   const level = getRiskLevel()
   const labels = {
     low: '우수',
-    medium: '주의',
-    high: '위험',
-    critical: '매우 위험'
+    high: '위험'
   }
   return labels[level] || '미평가'
 }

@@ -283,8 +283,7 @@ def _get_all_user_scores(year):
                 COALESCE(sss.training_penalty, 0) as training_penalty,
                 sss.last_calculated,
                 CASE 
-                    WHEN sss.total_penalty <= 0.5 THEN 'low'
-                    WHEN sss.total_penalty <= 2.0 THEN 'medium'
+                    WHEN COALESCE(sss.total_penalty, 0) = 0 THEN 'low'
                     ELSE 'high'
                 END as risk_level
             FROM users u
@@ -368,8 +367,7 @@ def _get_filtered_user_scores(year, department, position, penalty_range, search,
                 COALESCE(sss.training_penalty, 0) as training_penalty,
                 sss.last_calculated,
                 CASE 
-                    WHEN sss.total_penalty <= 0.5 THEN 'low'
-                    WHEN sss.total_penalty <= 2.0 THEN 'medium'
+                    WHEN COALESCE(sss.total_penalty, 0) = 0 THEN 'low'
                     ELSE 'high'
                 END as risk_level
             FROM users u

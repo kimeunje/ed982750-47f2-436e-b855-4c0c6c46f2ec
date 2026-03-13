@@ -293,16 +293,30 @@
   color: #3b82f6;
 }
 
-/* ===== 종합 점수 카드 ===== */
+/* ===== 종합 점수 카드 (공통) ===== */
 .overall-score-card {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
   border-radius: 20px;
   padding: 2rem;
   display: flex;
   align-items: center;
   gap: 2rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* 우수 (0건) — 톤다운 초록 */
+.overall-score-card.low {
+  background: linear-gradient(135deg, #4a9e7e 0%, #3a8568 100%);
+  box-shadow: 0 4px 16px -2px rgba(58, 133, 104, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* 위험 (1건+) — 톤다운 앰버 */
+.overall-score-card.high {
+  background: linear-gradient(135deg, #dba64a 0%, #c28b3a 100%);
+  box-shadow: 0 4px 16px -2px rgba(194, 139, 58, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .score-circle {
@@ -317,28 +331,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 6px solid rgba(255, 255, 255, 0.3);
   position: relative;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.circle-chart.low {
-  border-color: rgba(16, 185, 129, 0.3);
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.circle-chart.medium {
-  border-color: rgba(245, 158, 11, 0.3);
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
+.circle-chart.low,
 .circle-chart.high {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.circle-chart.critical {
-  border-color: rgba(127, 29, 29, 0.3);
-  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .circle-score {
@@ -348,12 +349,12 @@
 .score-number {
   font-size: 2.5rem;
   font-weight: 700;
-  display: block;
+  display: inline;
   line-height: 1;
 }
 
 .score-unit {
-  font-size: 1rem;
+  font-size: 1.25rem;
   opacity: 0.9;
 }
 
@@ -401,12 +402,13 @@
 }
 
 .detail-value {
+  color: #c9996d;
   font-size: 1rem;
   font-weight: 600;
 }
 
-.detail-value.penalty {
-  color: #fecaca;
+.detail-value.penalty-active {
+  color: white;
 }
 
 /* ===== 감점 상세 내역 ===== */

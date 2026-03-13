@@ -521,14 +521,6 @@ class ScoreService:
         return dashboard_data
 
     def _calculate_risk_level(self, total_penalty: float) -> str:
-        """위험도 계산"""
-        if total_penalty >= 3.0:
-            return "critical"
-        elif total_penalty >= 2.0:
-            return "high"
-        elif total_penalty >= 1.0:
-            return "medium"
-        elif total_penalty > 0:
-            return "low"
-        else:
-            return "excellent"
+        if total_penalty > 0:
+            return "high"    # 1건이라도 감점 발생
+        return "low"         # 감점 없음
