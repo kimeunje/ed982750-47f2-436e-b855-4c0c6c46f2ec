@@ -368,7 +368,7 @@
 .breakdown-card {
   background-color: white;
   border-radius: 12px;
-  border: none;
+  border: 1px solid #e5e7eb;
   overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -378,11 +378,17 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.breakdown-card.audit,
-.breakdown-card.manual-audit,
-.breakdown-card.education,
-.breakdown-card.training {
-  border-top: none;
+.breakdown-card.audit:hover,
+.breakdown-card.manual-audit:hover {
+  border-color: #ef4444;
+}
+
+.breakdown-card.education:hover {
+  border-color: #f59e0b;
+}
+
+.breakdown-card.training:hover {
+  border-color: #06b6d4;
 }
 
 .breakdown-card .card-header {
