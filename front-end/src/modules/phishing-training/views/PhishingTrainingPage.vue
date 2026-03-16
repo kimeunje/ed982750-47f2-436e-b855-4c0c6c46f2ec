@@ -22,7 +22,7 @@
       <!-- 에러 상태 -->
       <div v-else-if="error" class="error-container">
         <div class="error-icon">⚠️</div>
-        <h3>데이터 로드 실패</h3>
+        <h3>데이터 로드 오류</h3>
         <p>{{ error }}</p>
         <button @click="fetchTrainingStatus" class="retry-button">다시 시도</button>
       </div>
@@ -70,7 +70,7 @@
                 <span
                   class="progress-text"
                   :class="trainingData.summary.pass_rate >= 100 ? 'text-excellent' : 'text-poor'"
-                >통과율 {{ trainingData.summary.pass_rate }}%</span>
+                >양호율 {{ trainingData.summary.pass_rate }}%</span>
               </div>
 
               <div v-if="trainingData.summary.excluded_count > 0" class="card-notice">
@@ -265,7 +265,7 @@ const getMessageClass = (period) => {
 
 const getMessageText = (period) => {
   if (period.exclude_from_scoring) return '모의훈련이 점수 계산에서 제외되었습니다.'
-  if (period.result === 'pass') return '모의훈련을 성공적으로 통과했습니다.'
+  if (period.result === 'pass') return '모의훈련 결과가 양호합니다.'
   if (period.result === 'fail') {
     return `모의훈련에서 ${period.log_type || '피싱 활동'}을 했습니다.`
   }
