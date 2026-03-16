@@ -68,10 +68,6 @@
                   <span class="stat-label">미수료</span>
                   <span class="stat-value danger">{{ educationData.summary.incomplete }}</span>
                 </div>
-                <div v-if="educationData.summary.unique_courses" class="stat-row">
-                  <span class="stat-label">교육 과정 종류</span>
-                  <span class="stat-value">{{ educationData.summary.unique_courses }}</span>
-                </div>
               </div>
 
               <div class="card-progress">
