@@ -247,8 +247,8 @@
 
 /* 위험 (1건+) — 톤다운 앰버 */
 .overall-score-card.high {
-  background: linear-gradient(135deg, #dba64a 0%, #c28b3a 100%);
-  box-shadow: 0 4px 16px -2px rgba(194, 139, 58, 0.25),
+  background: linear-gradient(135deg, #4a7496 0%, #3a6080 100%);
+  box-shadow: 0 4px 16px -2px rgba(58, 96, 128, 0.25),
               inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
@@ -368,39 +368,46 @@
 .breakdown-card {
   background-color: white;
   border-radius: 12px;
-  border: 2px solid #e5e7eb;
+  border: none;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .breakdown-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.breakdown-card.audit {
-  border-top: 4px solid #ef4444;
-}
-
-.breakdown-card.manual-audit {
-  border-top: 4px solid #f59e0b;
-}
-
-.breakdown-card.education {
-  border-top: 4px solid #3b82f6;
-}
-
+.breakdown-card.audit,
+.breakdown-card.manual-audit,
+.breakdown-card.education,
 .breakdown-card.training {
-  border-top: 4px solid #06b6d4;
+  border-top: none;
 }
 
 .breakdown-card .card-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: none;
   background-color: #f9fafb;
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.breakdown-card.audit .card-header {
+  background-color: #fce4e4;
+}
+
+.breakdown-card.manual-audit .card-header {
+  background-color: #fef3c7;
+}
+
+.breakdown-card.education .card-header {
+  background-color: #fef3c7;
+}
+
+.breakdown-card.training .card-header {
+  background-color: #d5f5f6;
 }
 
 .card-icon {
@@ -423,7 +430,7 @@
 }
 
 .card-icon.education {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
 }
 
