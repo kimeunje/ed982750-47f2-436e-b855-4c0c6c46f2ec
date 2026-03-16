@@ -57,10 +57,6 @@
                   <span class="stat-label">미흡</span>
                   <span class="stat-value danger">{{ trainingData.summary.failed }}</span>
                 </div>
-                <div class="stat-row">
-                  <span class="stat-label">미실시</span>
-                  <span class="stat-value">{{ trainingData.summary.not_started || 0 }}</span>
-                </div>
               </div>
 
               <div class="card-progress">
