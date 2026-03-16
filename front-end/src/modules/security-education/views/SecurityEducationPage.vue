@@ -72,12 +72,6 @@
                   <span class="stat-label">교육 과정 종류</span>
                   <span class="stat-value">{{ educationData.summary.unique_courses }}</span>
                 </div>
-                <div v-if="educationData.summary.avg_completion_rate !== undefined" class="stat-row">
-                  <span class="stat-label">평균 수료율</span>
-                  <span class="stat-value" :class="educationData.summary.avg_completion_rate >= 100 ? 'success' : 'danger'">
-                    {{ educationData.summary.avg_completion_rate }}%
-                  </span>
-                </div>
               </div>
 
               <div class="card-progress">
