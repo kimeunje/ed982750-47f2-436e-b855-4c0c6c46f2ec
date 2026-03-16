@@ -669,6 +669,43 @@ def _calculate_education_penalty(user_id, year):
         logging.info(
             f"교육 감점 계산 완료: 미완료 기간 {periods_with_incomplete}개, 감점 {education_penalty}점")
 
+        # ✅ [신규] 개별 교육 과정 목록 조회 - 프론트엔드 카드 표시용
+        course_summary = []
+        try:
+            detail_query = """
+                SELECT 
+                    se.course_name,
+                    se.completed_count,
+                    se.incomplete_count,
+                    se.total_courses,
+                    se.completion_rate,
+                    sep.period_name
+                FROM security_education se
+                LEFT JOIN security_education_periods sep ON se.period_id = sep.period_id
+                WHERE se.user_id = %s 
+                  AND se.education_year = %s
+                  AND se.exclude_from_scoring = 0
+                ORDER BY se.course_name, se.created_at
+            """
+            detail_records = execute_query(detail_query, (user_id, year), fetch_all=True)
+
+            if detail_records:
+                for record in detail_records:
+                    completed = int(record['completed_count'] or 0)
+                    incomplete = int(record['incomplete_count'] or 0)
+                    course_summary.append({
+                        "course_name": record['course_name'],
+                        "period_name": record.get('period_name', ''),
+                        "completed": completed,
+                        "incomplete": incomplete,
+                        "total": int(record['total_courses'] or 0),
+                        "completion_rate": float(record['completion_rate'] or 0),
+                        "status": "완료" if incomplete == 0 else "미완료"
+                    })
+        except Exception as detail_err:
+            logging.warning(f"교육 과정 상세 조회 실패 (무시): {str(detail_err)}")
+            course_summary = []
+
         # 통계 정보
         education_stats = {
             "periods_with_incomplete": periods_with_incomplete,  # 새로운 필드
@@ -683,6 +720,8 @@ def _calculate_education_penalty(user_id, year):
             "total_educations": total_records,
             "passed_educations": total_records - periods_with_incomplete,
             "failed_educations": periods_with_incomplete,
+            # ✅ [신규] 프론트엔드 카드 표시용 개별 과정 목록
+            "course_summary": course_summary,
         }
 
         return education_penalty, education_stats

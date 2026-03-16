@@ -49,9 +49,8 @@
             </div>
             <div class="detail-item">
               <span class="detail-label">정보보호 교육</span>
-              <span class="detail-value" :class="{ 'penalty-active': (scoreData.education_stats?.periods_with_incomplete || scoreData.education_stats?.incomplete_count || 0) > 0 }">
-                {{ scoreData.education_stats?.periods_with_incomplete ||
-                   scoreData.education_stats?.incomplete_count || 0 }}건
+              <span class="detail-value" :class="{ 'penalty-active': getEducationFailCount() > 0 }">
+                {{ getEducationFailCount() }}건
               </span>
             </div>
             <div class="detail-item">
@@ -69,7 +68,7 @@
         <h2>감점 상세 내역</h2>
 
         <div class="breakdown-grid">
-          <!-- 보안 감사 (상시 + 수시 통합) -->
+          <!-- ========== 정보보안 감사 (기존 유지) ========== -->
           <div class="breakdown-card audit">
             <div class="card-header">
               <div class="card-icon audit">
@@ -83,11 +82,8 @@
             <div class="card-content">
               <div class="main-score penalty">{{ getAuditTotalCount() }}건</div>
               <div class="score-detail">
-                <p>총 미흡 항목: {{ getAuditTotalCount() }}개</p>
-                <p>정기 점검: {{ scoreData.audit_stats?.failed_count || 0 }}개 / {{ scoreData.audit_stats?.total_count || 0 }}개</p>
-                <p v-if="scoreData.manual_check_stats">
-                  수시 점검: {{ scoreData.manual_check_stats.failed_count || 0 }}개 / {{ scoreData.manual_check_stats.total_count || 0 }}개
-                </p>
+                <p>정기 점검 미흡: {{ scoreData.audit_stats?.failed_count || 0 }}건</p>
+                <p>수시 점검 미흡: {{ scoreData.manual_check_stats?.failed_count || 0 }}건</p>
               </div>
 
               <!-- 상시 감사 항목 -->
@@ -112,7 +108,7 @@
               
               <!-- items가 없고 failed_items만 있는 경우 (하위 호환성) -->
               <div v-else-if="scoreData.audit_stats?.failed_items?.length > 0" class="penalty-items">
-                <h4>📋 수시 점검 항목</h4>
+                <h4>📋 미흡 항목</h4>
                 <div class="penalty-list">
                   <div
                     v-for="item in scoreData.audit_stats.failed_items"
@@ -121,7 +117,7 @@
                   >
                     <div class="item-info">
                       <div class="item-name">{{ item.item_name }}</div>
-                      <div class="item-status">✗ 양호</div>
+                      <div class="item-status">✗ 미흡</div>
                     </div>
                   </div>
                 </div>
@@ -145,10 +141,6 @@
                 </div>
               </div>
 
-              <!-- 모두 통과한 경우 -->
-              <div v-if="getAuditTotalCount() === 0" class="no-penalty-items">
-                모든 보안 감사 항목을 통과했습니다 ✓
-              </div>
             </div>
 
             <div class="card-footer">
@@ -166,7 +158,7 @@
             </div>
           </div>
 
-          <!-- 정보보호 교육 -->
+          <!-- ========== 정보보호 교육 (상세 항목 카드 추가) ========== -->
           <div class="breakdown-card education">
             <div class="card-header">
               <div class="card-icon education">
@@ -179,15 +171,35 @@
 
             <div class="card-content">
               <div class="main-score penalty">
-                {{ scoreData.education_stats?.periods_with_incomplete ||
-                   scoreData.education_stats?.incomplete_count || 0 }}건
+                {{ getEducationFailCount() }}건
               </div>
               <div class="score-detail">
-                <p>미완료 기간: {{ scoreData.education_stats?.incomplete_count || 0 }}개</p>
-                <p>총 교육 기간: {{ scoreData.education_stats?.total_count || 0 }}개</p>
+                <p>교육 미수료: {{ getEducationFailCount() }}건</p>
+                <p>총 교육 과정: {{ scoreData.education_stats?.total_count || scoreData.education_stats?.total_educations || 0 }}건</p>
               </div>
 
-              <div v-if="scoreData.education_stats?.incomplete_periods?.length > 0" class="penalty-items">
+              <!-- ★ 신규: 과정별 상세 항목 카드 (course_summary 기반) -->
+              <div v-if="getEducationCourseList().length > 0" class="penalty-items">
+                <h4>📚 교육 과정별 현황</h4>
+                <div class="penalty-list">
+                  <div
+                    v-for="(course, index) in getEducationCourseList()"
+                    :key="index"
+                    class="penalty-item"
+                    :class="course.isPass ? 'pass' : 'fail'"
+                  >
+                    <div class="item-info">
+                      <div class="item-name">{{ course.name }}</div>
+                      <div class="item-status">
+                        {{ course.isPass ? '✓ 수료' : '✗ 미수료' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 레거시: incomplete_periods 문자열 배열 기반 (하위 호환) -->
+              <div v-else-if="scoreData.education_stats?.incomplete_periods?.length > 0" class="penalty-items">
                 <h4>미완료 교육 목록</h4>
                 <div class="penalty-list">
                   <div
@@ -202,6 +214,7 @@
                   </div>
                 </div>
               </div>
+
             </div>
 
             <div class="card-footer">
@@ -211,7 +224,7 @@
             </div>
           </div>
 
-          <!-- 악성메일 모의훈련 -->
+          <!-- ========== 악성메일 모의훈련 (상세 항목 카드 추가) ========== -->
           <div class="breakdown-card training">
             <div class="card-header">
               <div class="card-icon training">
@@ -227,12 +240,33 @@
                 {{ scoreData.training_stats?.failed_count || 0 }}건
               </div>
               <div class="score-detail">
-                <p>실패 횟수: {{ scoreData.training_stats?.failed_count || 0 }}회</p>
-                <p>총 훈련: {{ scoreData.training_stats?.total_count || 0 }}회</p>
+                <p>훈련 미흡: {{ scoreData.training_stats?.failed_count || 0 }}건</p>
+                <p>총 훈련: {{ scoreData.training_stats?.total_count || 0 }}건</p>
               </div>
 
-              <div v-if="scoreData.training_stats?.failed_periods?.length > 0" class="penalty-items">
-                <h4>실패한 훈련 목록</h4>
+              <!-- ★ 신규: 훈련별 상세 항목 카드 (items 기반) -->
+              <div v-if="getTrainingItemList().length > 0" class="penalty-items">
+                <h4>🎯 훈련별 현황</h4>
+                <div class="penalty-list">
+                  <div
+                    v-for="(item, index) in getTrainingItemList()"
+                    :key="index"
+                    class="penalty-item"
+                    :class="item.isPass ? 'pass' : 'fail'"
+                  >
+                    <div class="item-info">
+                      <div class="item-name">{{ item.name }}</div>
+                      <div class="item-status">
+                        {{ item.isPass ? '✓ 양호' : '✗ 미흡' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 레거시: failed_periods 문자열 배열 기반 (하위 호환) -->
+              <div v-else-if="scoreData.training_stats?.failed_periods?.length > 0" class="penalty-items">
+                <h4>미흡 훈련 목록</h4>
                 <div class="penalty-list">
                   <div
                     v-for="(period, index) in scoreData.training_stats.failed_periods"
@@ -241,11 +275,12 @@
                   >
                     <div class="item-info">
                       <div class="item-name">{{ period }}</div>
-                      <div class="item-status">✗ 실패</div>
+                      <div class="item-status">✗ 미흡</div>
                     </div>
                   </div>
                 </div>
               </div>
+
             </div>
 
             <div class="card-footer">
@@ -256,6 +291,7 @@
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>
@@ -273,7 +309,6 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref(null)
 const scoreData = ref(null)
-const recommendations = ref([])
 const selectedYear = ref(2026)
 
 // 계산된 속성
@@ -282,25 +317,24 @@ const availableYears = computed(() => {
   return [currentYear - 1, currentYear, currentYear + 1]
 })
 
-// 점수 계산 함수들
+// ===== 점수 계산 함수들 =====
+
 const getTotalCount = () => {
   const auditCount = getAuditTotalCount()
-  const educationCount = scoreData.value?.education_stats?.periods_with_incomplete ||
-                        scoreData.value?.education_stats?.incomplete_count || 0
+  const educationCount = getEducationFailCount()
   const trainingCount = scoreData.value?.training_stats?.failed_count || 0
   return auditCount + educationCount + trainingCount
 }
 
 const getAuditTotalCount = () => {
-  const failed = scoreData.value?.audit_stats?.failed_count || 0
+  const auditFailed = scoreData.value?.audit_stats?.failed_count || 0
   const manualFailed = scoreData.value?.manual_check_stats?.failed_count || 0
-  return failed + manualFailed
+  return auditFailed + manualFailed
 }
 
-const getPassRate = (stats) => {
-  if (!stats || !stats.total_count) return 0
-  const passCount = stats.total_count - (stats.failed_count || 0)
-  return Math.round((passCount / stats.total_count) * 100)
+const getEducationFailCount = () => {
+  return scoreData.value?.education_stats?.periods_with_incomplete ||
+         scoreData.value?.education_stats?.incomplete_count || 0
 }
 
 const getRiskLevel = () => {
@@ -309,51 +343,64 @@ const getRiskLevel = () => {
   return 'high'                         // 1건+: 위험 (KPI 감점 발생)
 }
 
-const getRiskLevelLabel = () => {
-  const level = getRiskLevel()
-  const labels = {
-    low: '우수',
-    high: '위험'
+// ===== ★ 교육 과정 목록 생성 함수 =====
+const getEducationCourseList = () => {
+  const stats = scoreData.value?.education_stats
+  if (!stats) return []
+
+  // 1순위: course_summary 배열 (personal-dashboard API)
+  if (stats.course_summary && stats.course_summary.length > 0) {
+    return stats.course_summary.map(course => ({
+      name: course.course_name || course.education_name || '교육 과정',
+      detail: course.completion_rate !== undefined
+        ? `수료율 ${course.completion_rate}% (수료 ${course.completed || 0} / 미수료 ${course.incomplete || 0})`
+        : null,
+      isPass: course.status === '완료' || course.incomplete === 0 || course.incomplete_count === 0
+    }))
   }
-  return labels[level] || '미평가'
+
+  // 2순위: incomplete_items 배열 (admin-user-detail API)
+  if (stats.incomplete_items && stats.incomplete_items.length > 0) {
+    // incomplete_items는 미완료 항목만 포함하므로, 전체 목록을 구성하기 위해
+    // passed_educations 수와 합쳐서 표현
+    const items = []
+
+    // 미완료 항목 추가
+    for (const item of stats.incomplete_items) {
+      items.push({
+        name: item.course_name || item.education_name || '교육 과정',
+        detail: item.completion_rate !== undefined
+          ? `수료율 ${item.completion_rate}% (수료 ${item.completed_count || 0} / 미수료 ${item.incomplete_count || 0})`
+          : null,
+        isPass: false
+      })
+    }
+
+    return items
+  }
+
+  return []
 }
 
-const getPriorityText = (priority) => {
-  const texts = {
-    high: '긴급',
-    medium: '보통',
-    low: '낮음',
-    info: '정보'
+// ===== ★ 모의훈련 항목 목록 생성 함수 =====
+const getTrainingItemList = () => {
+  const stats = scoreData.value?.training_stats
+  if (!stats) return []
+
+  // items 배열 (personal-dashboard API)
+  if (stats.items && stats.items.length > 0) {
+    return stats.items.map(item => ({
+      name: item.period || item.period_name || '모의훈련',
+      detail: item.training_type || null,
+      isPass: item.result === 'success' || item.result === 'pass'
+    }))
   }
-  return texts[priority] || priority
+
+  return []
 }
 
-const getActionButtonText = (category) => {
-  const texts = {
-    audit: '감사 결과 보기',
-    education: '교육 이수하기',
-    training: '훈련 결과 보기'
-  }
-  return texts[category] || '자세히 보기'
-}
+// ===== API 호출 =====
 
-// 날짜 포맷 함수
-const formatDateTime = (date) => {
-  if (!date) return '-'
-  try {
-    return new Date(date).toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch {
-    return '-'
-  }
-}
-
-// API 호출 함수
 const callSecurityScoreAPI = async (year) => {
   const response = await fetch(`/api/personal-dashboard/summary?year=${year}`, {
     method: 'GET',
@@ -369,28 +416,7 @@ const callSecurityScoreAPI = async (year) => {
       throw new Error('인증이 필요합니다. 로그인 페이지로 이동합니다.')
     }
     const errorData = await response.json()
-    throw new Error(errorData.error || '데이터 조회 중 오류가 발생했습니다.')
-  }
-
-  return await response.json()
-}
-
-const callRecommendationsAPI = async (year) => {
-  const response = await fetch(`/api/personal-dashboard/recommendations?year=${year}`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      router.push('/login')
-      throw new Error('인증이 필요합니다. 로그인 페이지로 이동합니다.')
-    }
-    const errorData = await response.json()
-    throw new Error(errorData.error || '권장사항 조회 중 오류가 발생했습니다.')
+    throw new Error(errorData.error || '보안 점수 조회 중 오류가 발생했습니다.')
   }
 
   return await response.json()
@@ -404,14 +430,6 @@ const fetchSecurityScore = async () => {
   try {
     const data = await callSecurityScoreAPI(selectedYear.value)
     scoreData.value = data
-
-    try {
-      const recommendationsData = await callRecommendationsAPI(selectedYear.value)
-      recommendations.value = recommendationsData.recommendations || []
-    } catch (err) {
-      console.error('권장사항 로드 실패:', err)
-      recommendations.value = []
-    }
   } catch (err) {
     console.error('보안 점수 로드 실패:', err)
     error.value = err.message
