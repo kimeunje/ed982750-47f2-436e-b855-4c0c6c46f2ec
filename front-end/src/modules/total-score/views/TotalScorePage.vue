@@ -17,8 +17,15 @@
 
     <!-- 보안 점수 데이터 -->
     <div v-else-if="scoreData" class="score-content">
-      <!-- 2. 종합 점수 카드 -->
+      <!-- 종합 점수 카드 -->
       <div class="overall-score-card" :class="getRiskLevel()">
+        <!-- 연도 선택기 (카드 우측 상단) -->
+        <div class="card-year-selector">
+          <select v-model="selectedYear" @change="fetchSecurityScore">
+            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년</option>
+          </select>
+        </div>
+
         <div class="score-circle">
           <div class="circle-chart" :class="getRiskLevel()">
             <div class="circle-score">
@@ -309,7 +316,7 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref(null)
 const scoreData = ref(null)
-const selectedYear = ref(2026)
+const selectedYear = ref(new Date().getFullYear())
 
 // 계산된 속성
 const availableYears = computed(() => {
@@ -446,4 +453,49 @@ onMounted(() => {
 
 <style scoped>
 @import '../styles/TotalScorePage.css';
+
+/* 종합 점수 카드 내 연도 선택기 */
+.overall-score-card {
+  position: relative;
+}
+
+.card-year-selector {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 1;
+}
+
+.card-year-selector select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 1.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+}
+
+.card-year-selector select:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.card-year-selector select:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.card-year-selector select option {
+  background-color: #374151;
+  color: white;
+}
 </style>
