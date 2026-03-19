@@ -83,7 +83,15 @@
         <!-- 상반기/하반기별 상세 현황 -->
         <div class="section">
           <h2 class="section-title">상반기/하반기별 모의훈련 결과</h2>
-          <div class="periods-grid">
+
+          <!-- 일정이 없는 경우 -->
+          <div v-if="!trainingData.period_status || trainingData.period_status.length === 0" class="no-schedule-notice">
+            <div class="no-schedule-icon">📅</div>
+            <p>{{ selectedYear }}년에 등록된 모의훈련 일정이 없습니다.</p>
+          </div>
+
+          <!-- 일정이 있는 경우 -->
+          <div v-else class="periods-grid">
             <div
               v-for="period in trainingData.period_status"
               :key="period.period"
@@ -201,6 +209,16 @@ const availableYears = computed(() => {
   return [currentYear - 2, currentYear - 1, currentYear, currentYear + 1]
 })
 
+// 빈 데이터 여부
+const isEmptyData = computed(() => {
+  return (
+    trainingData.value &&
+    trainingData.value.summary &&
+    trainingData.value.summary.total_trainings === 0 &&
+    (!trainingData.value.period_status || trainingData.value.period_status.length === 0)
+  )
+})
+
 // ===== API 호출 =====
 const fetchTrainingStatus = async () => {
   loading.value = true
@@ -296,4 +314,23 @@ onMounted(() => {
 
 <style scoped>
 @import '../styles/PhishingTrainingPage.css';
+
+.no-schedule-notice {
+  text-align: center;
+  padding: 3rem 2rem;
+  background-color: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  color: #6b7280;
+}
+
+.no-schedule-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.no-schedule-notice p {
+  margin: 0;
+  font-size: 1rem;
+}
 </style>

@@ -27,16 +27,6 @@
         <button @click="fetchEducationStatus" class="retry-button">다시 시도</button>
       </div>
 
-      <!-- 빈 데이터 -->
-      <div v-else-if="isEmptyData" class="error-container">
-        <div class="no-data-icon">📚</div>
-        <h3>{{ selectedYear }}년 교육 데이터 없음</h3>
-        <p>해당 연도에 등록된 교육 과정이 없습니다.</p>
-        <div class="no-data-actions">
-          <button @click="fetchEducationStatus" class="retry-button">다시 조회</button>
-        </div>
-      </div>
-
       <!-- 교육 현황 데이터 -->
       <div v-else-if="educationData" class="education-content">
 
@@ -95,7 +85,15 @@
         <!-- 온라인/오프라인별 상세 현황 -->
         <div class="section">
           <h2 class="section-title">온라인/오프라인별 교육 현황</h2>
-          <div class="periods-grid">
+
+          <!-- 일정이 없는 경우 -->
+          <div v-if="!educationData.education_status || educationData.education_status.length === 0" class="no-schedule-notice">
+            <div class="no-schedule-icon">📅</div>
+            <p>{{ selectedYear }}년에 등록된 교육 일정이 없습니다.</p>
+          </div>
+
+          <!-- 일정이 있는 경우 -->
+          <div v-else class="periods-grid">
             <div
               v-for="education in educationData.education_status"
               :key="education.course_name || education.type"
@@ -506,4 +504,23 @@ onMounted(() => {
 
 <style scoped>
 @import '../styles/SecurityEducationPage.css';
+
+.no-schedule-notice {
+  text-align: center;
+  padding: 3rem 2rem;
+  background-color: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  color: #6b7280;
+}
+
+.no-schedule-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.no-schedule-notice p {
+  margin: 0;
+  font-size: 1rem;
+}
 </style>
