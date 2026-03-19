@@ -121,6 +121,7 @@ onMounted(async () => {
 html,
 body {
   max-width: 100vw;
+  height: 100%;
   font-family:
     'Noto Sans KR',
     'Malgun Gothic',
@@ -144,10 +145,22 @@ a {
 }
 
 /* 메인 컨테이너 */
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .main-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   background-color: var(--bright-bg);
-  min-height: calc(100vh - 114px); /* 헤더와 네비게이션 높이 제외 */
+}
+
+.main-container > * {
+  width: 100%;
 }
 
 /* 공통 페이지 요소들 */

@@ -248,6 +248,9 @@ onMounted(() => {
   opacity: 1;
   width: 100%;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 /* 데스크톱 네비게이션 */
@@ -265,6 +268,7 @@ onMounted(() => {
   padding: 15px 20px;
   display: block;
   transition: background-color 0.3s ease;
+  white-space: nowrap;
 }
 
 .desktop-nav li a:hover,
@@ -348,6 +352,7 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   padding: 0;
+  margin-left: auto;
 }
 
 .hamburger-line {
@@ -459,9 +464,10 @@ onMounted(() => {
 }
 
 /* 반응형 디자인 */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .navigation {
     padding: 0 20px;
+    top: 56px; /* 모바일 헤더 높이에 맞춤 (padding 10px + 로고 40px 기준) */
   }
 
   /* 데스크톱 네비게이션 숨기기 */
@@ -473,15 +479,24 @@ onMounted(() => {
   .mobile-menu-toggle {
     display: flex;
   }
+
+  /* 모바일 메뉴 위치도 조정 */
+  .mobile-menu {
+    top: 105px; /* 모바일 헤더(56px) + 네비게이션(49px) */
+    height: calc(100vh - 105px);
+  }
 }
 
 @media (max-width: 480px) {
   .navigation {
     padding: 0 15px;
+    top: 52px; /* 더 작은 화면에서 헤더 높이 */
   }
 
   .mobile-menu {
     width: 280px;
+    top: 101px;
+    height: calc(100vh - 101px);
   }
 }
 </style>

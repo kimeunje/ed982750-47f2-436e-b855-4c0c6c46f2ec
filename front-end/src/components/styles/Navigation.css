@@ -125,9 +125,10 @@
 }
 
 /* 반응형 디자인 */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .navigation {
     padding: 0 20px;
+    top: 56px;
   }
 
   /* 데스크톱 네비게이션 숨기기 */
@@ -138,6 +139,13 @@
   /* 모바일 햄버거 버튼 보이기 */
   .mobile-menu-toggle {
     display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .navigation {
+    padding: 0 15px;
+    top: 52px;
   }
 }
 
