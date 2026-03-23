@@ -5,6 +5,7 @@
 - 사용자 검색
 - 일괄 내보내기
 - 사용자 선택 및 관리
+- ✅ 부서/직급 필터 옵션 응답에 포함
 """
 
 from flask import Blueprint, request, jsonify
@@ -56,17 +57,20 @@ def get_users_list():
             sort_order,
         )
 
-        # ✅ 데이터 확인 로그
+        # 데이터 확인 로그
         logging.info(f"조회된 사용자 수: {len(users_data)}")
         if users_data:
             first_user = users_data[0]
             logging.info(f"첫 번째 사용자: {first_user.get('name')}")
-            logging.info(f"첫 번째 사용자 키: {first_user.keys()}")
             logging.info(f"첫 번째 사용자 is_active: {first_user.get('is_active')}")
-            
+
             # 비활성 사용자 찾기
             inactive = [u for u in users_data if not u.get('is_active')]
             logging.info(f"비활성 사용자 수: {len(inactive)}")
+
+        # ✅ 부서/직급 옵션 조회 추가
+        dept_options = _get_department_options()
+        pos_options = _get_position_options()
 
         response_data = {
             "users": users_data,
@@ -85,6 +89,8 @@ def get_users_list():
                 "sort_by": sort_by,
                 "sort_order": sort_order,
             },
+            "department_options": dept_options,    # ✅ 추가
+            "position_options": pos_options,       # ✅ 추가
         }
 
         logging.info("✅ get_users_list 완료")
@@ -119,18 +125,15 @@ def export_users():
 
     try:
         if export_type == "selected" and user_ids:
-            # 선택된 사용자만 내보내기
             user_id_list = [
                 int(uid.strip()) for uid in user_ids.split(",") if uid.strip()
             ]
             return _export_selected_users(user_id_list, year, format_type)
         elif export_type == "filtered":
-            # 필터된 사용자 전체 내보내기
             return _export_filtered_users(
                 year, department, position, risk_level, search, format_type
             )
         else:
-            # 전체 사용자 내보내기
             return _export_all_users(year, format_type)
 
     except Exception as e:
@@ -153,23 +156,8 @@ def export_users():
 def get_filter_options():
     """필터 옵션 조회 (부서, 직급 목록)"""
     try:
-        # 부서 목록 조회
-        departments_query = """
-            SELECT DISTINCT department 
-            FROM users 
-            WHERE is_active = 1 AND department IS NOT NULL AND department != ''
-            ORDER BY department
-        """
-        departments = [row["department"] for row in execute_query(departments_query)]
-
-        # 직급 목록 조회
-        positions_query = """
-            SELECT DISTINCT position 
-            FROM users 
-            WHERE is_active = 1 AND position IS NOT NULL AND position != ''
-            ORDER BY position
-        """
-        positions = [row["position"] for row in execute_query(positions_query)]
+        departments = _get_department_options()
+        positions = _get_position_options()
 
         return jsonify(
             {
@@ -264,8 +252,43 @@ def search_users():
         )
 
 
-# === 헬퍼 함수들 ===
+# ============================================================================
+# ✅ 부서/직급 옵션 헬퍼 함수
+# ============================================================================
 
+def _get_department_options():
+    """부서 목록 조회 (활성 사용자 기준)"""
+    try:
+        departments_query = """
+            SELECT DISTINCT department 
+            FROM users 
+            WHERE is_active = 1 AND department IS NOT NULL AND department != ''
+            ORDER BY department
+        """
+        return [row["department"] for row in execute_query(departments_query)]
+    except Exception as e:
+        logging.error(f"Department options error: {str(e)}")
+        return []
+
+
+def _get_position_options():
+    """직급 목록 조회 (활성 사용자 기준)"""
+    try:
+        positions_query = """
+            SELECT DISTINCT position 
+            FROM users 
+            WHERE is_active = 1 AND position IS NOT NULL AND position != ''
+            ORDER BY position
+        """
+        return [row["position"] for row in execute_query(positions_query)]
+    except Exception as e:
+        logging.error(f"Position options error: {str(e)}")
+        return []
+
+
+# ============================================================================
+# 헬퍼 함수들
+# ============================================================================
 
 def _get_filtered_users(
     year,
@@ -287,8 +310,7 @@ def _get_filtered_users(
         where_conditions = []
         params = []
 
-        # ✅ is_active 조건 제거 - 모든 사용자 조회
-        # 기존: where_conditions.append("u.is_active = 1")  <- 이 조건을 제거함
+        # is_active 조건 제거 - 모든 사용자 조회 (사용자 관리 페이지에서는 비활성도 표시)
 
         if search:
             where_conditions.append(
@@ -334,7 +356,7 @@ def _get_filtered_users(
         # 페이지네이션
         offset = (page - 1) * per_page
 
-        # ✅ 메인 데이터 조회 쿼리 (is_active 필드 포함)
+        # 메인 데이터 조회 쿼리 (is_active 필드 포함)
         data_query = f"""
             SELECT 
                 u.uid,
@@ -366,12 +388,9 @@ def _get_filtered_users(
         # 쿼리 실행
         data_params = [year] + params + [per_page, offset]
         
-        # ✅ 쿼리 로그 출력
-        logging.info("=" * 80)
         logging.info("실행할 쿼리:")
         logging.info(data_query)
         logging.info(f"파라미터: {data_params}")
-        logging.info("=" * 80)
         
         users = execute_query(data_query, data_params)
         
@@ -382,24 +401,16 @@ def _get_filtered_users(
         for user in users:
             user_dict = dict(user)
             
-            # ✅ is_active 처리 - 디버깅 로그 추가
+            # is_active 처리
             is_active_raw = user_dict.get("is_active")
-            logging.info(f"사용자 {user_dict.get('name')} (uid={user_dict.get('uid')}): is_active raw = {is_active_raw}, type = {type(is_active_raw)}")
-            
-            # ✅ 명확한 변환 로직
             if is_active_raw is None:
                 user_dict["is_active"] = True
-                logging.warning(f"  → is_active가 None이므로 True로 설정")
             elif is_active_raw == 0:
                 user_dict["is_active"] = False
-                logging.info(f"  → is_active = 0, False로 변환")
             elif is_active_raw == 1:
                 user_dict["is_active"] = True
-                logging.info(f"  → is_active = 1, True로 변환")
             else:
-                # 예상치 못한 값
                 user_dict["is_active"] = True
-                logging.warning(f"  → 예상치 못한 is_active 값: {is_active_raw}, True로 설정")
             
             # 날짜 포맷팅
             if user_dict.get("last_calculated"):
@@ -426,7 +437,7 @@ def _get_filtered_users(
         
         logging.info(f"데이터 포맷팅 완료. 최종 사용자 수: {len(users_data)}")
         
-        # ✅ 비활성 사용자 확인
+        # 비활성 사용자 확인
         inactive_users = [u for u in users_data if not u.get("is_active")]
         logging.info(f"비활성 사용자 수: {len(inactive_users)}")
         if inactive_users:
@@ -441,7 +452,6 @@ def _get_filtered_users(
         import traceback
         logging.error(traceback.format_exc())
         raise
-
 
 
 def _export_selected_users(user_ids, year, format_type):
@@ -493,7 +503,6 @@ def _export_selected_users(user_ids, year, format_type):
 def _export_filtered_users(year, department, position, risk_level, search, format_type):
     """필터된 사용자 전체 내보내기"""
     try:
-        # 필터 조건과 동일한 로직으로 모든 데이터 조회
         users_data, _ = _get_filtered_users(
             year,
             department,
@@ -503,7 +512,7 @@ def _export_filtered_users(year, department, position, risk_level, search, forma
             1,
             999999,
             "total_penalty",
-            "desc",  # 모든 데이터 조회
+            "desc",
         )
 
         filename_parts = ["filtered_users"]
@@ -646,7 +655,7 @@ def _get_filtered_users_with_training_penalty(
             year = datetime.now().year
 
         # WHERE 조건 구성
-        where_conditions = ["u.is_active = 1"]  # 기본 조건
+        where_conditions = ["u.is_active = 1"]
         params = []
 
         if search_query:
@@ -690,7 +699,7 @@ def _get_filtered_users_with_training_penalty(
         # 페이지네이션
         offset = (page - 1) * per_page
 
-        # ✅ 메인 데이터 조회 - is_active 추가
+        # 메인 데이터 조회 - is_active 포함
         data_query = f"""
             SELECT 
                 u.uid,
@@ -701,7 +710,7 @@ def _get_filtered_users_with_training_penalty(
                 u.mail as email,
                 u.ip,
                 u.role,
-                u.is_active,                                    -- ✅ 이 줄 추가
+                u.is_active,
                 u.created_at,
                 u.updated_at,
                 u.last_updated,
@@ -725,19 +734,16 @@ def _get_filtered_users_with_training_penalty(
         data_params = [year, year] + params + [per_page, offset]
         users_data = execute_query(data_query, data_params)
 
-        # ✅ 데이터 후처리 - is_active 변환 추가
+        # 데이터 후처리
         for user in users_data:
-            # is_active를 boolean으로 변환
             is_active_val = user.get("is_active")
             user["is_active"] = bool(is_active_val) if is_active_val in (0, 1) else True
             
-            # training_penalty를 실제 user_phishing_summary의 penalty_score로 업데이트
             user["training_penalty"] = float(user["training_penalty"])
             user["total_penalty"] = float(user["total_penalty"])
             user["audit_penalty"] = float(user["audit_penalty"])
             user["education_penalty"] = float(user["education_penalty"])
 
-            # 총 감점에 훈련 감점 반영
             recalculated_total = (
                 float(user["audit_penalty"])
                 + float(user["education_penalty"])
@@ -745,14 +751,12 @@ def _get_filtered_users_with_training_penalty(
             )
             user["total_penalty"] = min(5.0, recalculated_total)
 
-            # 리스크 레벨 계산
             total_penalty = user["total_penalty"]
             if total_penalty == 0:
                 user["risk_level"] = "low"
             else:
                 user["risk_level"] = "high"
 
-            # 날짜 포맷팅
             if user.get("last_calculated"):
                 user["last_updated"] = user["last_calculated"].strftime("%Y-%m-%d %H:%M:%S")
             else:
