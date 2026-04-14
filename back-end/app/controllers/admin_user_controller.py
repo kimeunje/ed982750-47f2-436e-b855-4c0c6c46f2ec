@@ -246,8 +246,8 @@ def update_user(user_id):
 def delete_user(user_id):
     """사용자 삭제 (실제 삭제)"""
     try:
-        # 사용자 존재 확인
-        existing_user = _get_user_by_id(user_id)
+        # 사용자 존재 확인 (비활성 사용자 포함)
+        existing_user = _get_user_by_id(user_id, include_inactive=True)
         if not existing_user:
             return (
                 jsonify({
@@ -268,8 +268,8 @@ def delete_user(user_id):
                 HTTP_STATUS["FORBIDDEN"],
             )
 
-        # 사용자 삭제 (실제 삭제)
-        _delete_user(user_id)
+        # 사용자 삭제 (연관 데이터 포함)
+        _remove_user_record(user_id)
 
         logging.info(f"사용자 삭제 완료: {existing_user['name']} (ID: {user_id})")
 
@@ -552,15 +552,32 @@ def _update_user_record(user_id, data):
         raise
 
 
-def _delete_user(user_id):
-    """사용자 실제 삭제 (현재 DB에는 is_active 필드가 없으므로)"""
+def _remove_user_record(user_id):
+    """사용자 및 연관 데이터 삭제 (외래키 제약 조건 처리)"""
     try:
-        delete_query = """
-            DELETE FROM users 
-            WHERE uid = %s
-        """
+        # 연관 테이블에서 해당 사용자 데이터를 먼저 삭제 (순서 중요)
+        related_tables = [
+            "DELETE FROM security_score_summary WHERE user_id = %s",
+            "DELETE FROM audit_log WHERE user_id = %s",
+            "DELETE FROM manual_check_results WHERE user_id = %s",
+            "DELETE FROM phishing_training WHERE user_id = %s",
+            "DELETE FROM security_education WHERE user_id = %s",
+            "DELETE FROM user_item_exceptions WHERE user_id = %s",
+            "DELETE FROM user_exceptions WHERE user_id = %s",
+            "DELETE FROM user_extended_exceptions WHERE user_id = %s",
+        ]
 
-        execute_query(delete_query, (user_id, ))
+        for query in related_tables:
+            try:
+                execute_query(query, (user_id,))
+            except Exception as table_err:
+                # 테이블이 존재하지 않거나 데이터가 없는 경우 무시
+                logging.warning(f"연관 데이터 삭제 중 무시된 오류: {str(table_err)}")
+
+        # 모든 연관 데이터 삭제 후 사용자 삭제
+        execute_query("DELETE FROM users WHERE uid = %s", (user_id,))
+
+        logging.info(f"사용자 및 연관 데이터 삭제 완료: uid={user_id}")
 
     except Exception as e:
         logging.error(f"사용자 삭제 오류: {str(e)}")
