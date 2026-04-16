@@ -777,6 +777,161 @@ def download_template():
         )
 
 
+@education_bp.route("/search-users", methods=["GET"])
+@admin_required
+@handle_exceptions
+def search_users_for_education():
+    """교육 기록 추가를 위한 사용자 검색"""
+    query = request.args.get("q", "").strip()
+
+    if not query or len(query) < 1:
+        return jsonify({"users": []})
+
+    try:
+        users = execute_query(
+            """
+            SELECT uid, user_id, username, department, mail
+            FROM users
+            WHERE (username LIKE %s OR department LIKE %s OR user_id LIKE %s)
+            ORDER BY username
+            LIMIT 20
+            """,
+            (f"%{query}%", f"%{query}%", f"%{query}%"),
+            fetch_all=True,
+        )
+
+        return jsonify({
+            "users": [
+                {
+                    "uid": u["uid"],
+                    "user_id": u["user_id"],
+                    "username": u["username"],
+                    "department": u["department"],
+                    "mail": u["mail"],
+                }
+                for u in users
+            ]
+        })
+
+    except Exception as e:
+        print(f"[ERROR] 사용자 검색 실패: {str(e)}")
+        return (
+            jsonify({"error": f"사용자 검색 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
+@education_bp.route("/create", methods=["POST"])
+@admin_required
+@handle_exceptions
+@validate_json(["period_id", "user_id"])
+def create_education_record():
+    """단일 교육 기록 추가"""
+    data = request.json
+    period_id = data.get("period_id")
+    user_id = data.get("user_id")
+    course_name = data.get("course_name", "")
+    completed_count = int(data.get("completed_count", 0))
+    incomplete_count = int(data.get("incomplete_count", 0))
+    education_date = data.get("education_date") or None
+    notes = data.get("notes", "")
+
+    try:
+        # 기간 정보 조회
+        period_info = execute_query(
+            """
+            SELECT period_id, period_name, education_type, education_year
+            FROM security_education_periods
+            WHERE period_id = %s
+            """,
+            (period_id,),
+            fetch_one=True,
+        )
+
+        if not period_info:
+            return (
+                jsonify({"error": "선택한 교육 기간을 찾을 수 없습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+
+        # 사용자 존재 확인
+        user_info = execute_query(
+            "SELECT uid, username, department FROM users WHERE uid = %s",
+            (user_id,),
+            fetch_one=True,
+        )
+
+        if not user_info:
+            return (
+                jsonify({"error": "선택한 사용자를 찾을 수 없습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+
+        education_type = period_info["education_type"]
+        education_year = period_info["education_year"]
+
+        # 중복 확인 (같은 사용자 + 기간 + 교육유형)
+        existing = execute_query(
+            """
+            SELECT education_id FROM security_education
+            WHERE user_id = %s AND period_id = %s AND education_type = %s
+            """,
+            (user_id, period_id, education_type),
+            fetch_one=True,
+        )
+
+        if existing:
+            return (
+                jsonify({
+                    "error": f"{user_info['username']}님의 해당 기간 교육 기록이 이미 존재합니다. "
+                             f"기존 기록을 수정해주세요."
+                }),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+
+        # 교육 기록 삽입
+        execute_query(
+            """
+            INSERT INTO security_education 
+            (user_id, period_id, education_type, education_year,
+             course_name, completed_count, incomplete_count,
+             education_date, notes, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+            """,
+            (
+                user_id,
+                period_id,
+                education_type,
+                education_year,
+                course_name or period_info["period_name"],
+                completed_count,
+                incomplete_count,
+                education_date,
+                notes,
+            ),
+        )
+
+        print(
+            f"[DEBUG] 단일 교육 기록 추가 완료: user={user_info['username']}, "
+            f"period={period_info['period_name']}, "
+            f"completed={completed_count}, incomplete={incomplete_count}"
+        )
+
+        return jsonify({
+            "success": True,
+            "message": f"{user_info['username']}님의 교육 기록이 추가되었습니다.",
+        }), HTTP_STATUS["CREATED"]
+
+    except Exception as e:
+        print(f"[ERROR] 단일 교육 기록 추가 실패: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return (
+            jsonify({"error": f"교육 기록 추가 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
 @education_bp.route("/update", methods=["PUT"])
 @admin_required
 @handle_exceptions
@@ -1258,126 +1413,15 @@ def update_education_period(period_id):
 @admin_required
 @handle_exceptions
 def get_periods_with_statistics():
-    """교육 기간 목록과 통계 정보 조회"""
+    """교육 기간 목록과 통계 정보 조회 (서비스 위임)"""
     try:
         year = request.args.get('year', type=int)
         if not year:
             year = datetime.now().year
-
-        # 교육 기간별 통계를 포함한 쿼리
-        query = """
-        SELECT 
-            sep.period_id,
-            sep.education_year,
-            sep.period_name,
-            sep.education_type,
-            sep.start_date,
-            sep.end_date,
-            sep.is_completed,
-            sep.completed_at,
-            sep.completed_by,
-            sep.description,
-            sep.auto_pass_setting,
-            sep.created_by,
-            sep.created_at,
-            sep.updated_at,
-            -- 통계 정보 (사용자 상태 기반)
-            COUNT(DISTINCT se.user_id) as total_participants,
-            -- 성공: incomplete_count = 0인 사용자 수
-            COUNT(DISTINCT CASE WHEN se.incomplete_count = 0 THEN se.user_id END) as success_user_count,
-            -- 실패: incomplete_count > 0인 사용자 수  
-            COUNT(DISTINCT CASE WHEN se.incomplete_count > 0 THEN se.user_id END) as failure_user_count,
-            -- 성공률: 성공한 사용자 / 전체 참가자
-            COALESCE(
-                CASE 
-                    WHEN COUNT(DISTINCT se.user_id) > 0 
-                    THEN ROUND(
-                        (COUNT(DISTINCT CASE WHEN se.incomplete_count = 0 THEN se.user_id END) / COUNT(DISTINCT se.user_id)) * 100, 
-                        2
-                    )
-                    ELSE 0 
-                END, 
-                0
-            ) as success_rate
-        FROM security_education_periods sep
-        LEFT JOIN security_education se ON sep.period_id = se.period_id
-        WHERE sep.education_year = %s
-        GROUP BY sep.period_id
-        ORDER BY sep.education_type, sep.start_date DESC
-        """
-
-        periods = execute_query(query, (year, ), fetch_all=True)
-
-        # 교육 유형별로 그룹화
-        education_types = {}
-
-        for period in periods:
-            education_type = period['education_type']
-
-            if education_type not in education_types:
-                education_types[education_type] = {
-                    'type_name': education_type,
-                    'periods': [],
-                    'total_participants': 0,
-                    'total_success': 0,
-                    'total_failure': 0
-                }
-
-            # 기간별 상태 결정
-            status = determine_period_status(period)
-
-            period_info = {
-                'period_id': period['period_id'],
-                'period_name': period['period_name'],
-                'education_year': period['education_year'],
-                'education_type': period['education_type'],
-                'start_date': period['start_date'].isoformat()
-                if period['start_date'] else None,
-                'end_date': period['end_date'].isoformat()
-                if period['end_date'] else None,
-                'is_completed': bool(period['is_completed']),
-                'completed_at': period['completed_at'].isoformat()
-                if period['completed_at'] else None,
-                'completed_by': period['completed_by'],
-                'description': period['description'],
-                'status': status,
-                # 통계 정보
-                'statistics': {
-                    'total_participants': int(period['total_participants'] or 0),
-                    'success_user_count': int(period['success_user_count'] or 0),
-                    'failure_user_count': int(period['failure_user_count'] or 0),
-                    'success_rate': float(period['success_rate'] or 0),
-                    'total_attempts': int(period['total_participants']
-                                          or 0)  # 총 참가자와 동일
-                }
-            }
-
-            education_types[education_type]['periods'].append(period_info)
-
-            # 교육 유형별 통계 누적
-            education_types[education_type]['total_participants'] += period_info[
-                'statistics']['total_participants']
-            education_types[education_type]['total_success'] += period_info[
-                'statistics']['success_user_count']
-            education_types[education_type]['total_failure'] += period_info[
-                'statistics']['failure_user_count']
-
-        # 교육 유형별 성공률 계산
-        for type_data in education_types.values():
-            if type_data['total_participants'] > 0:
-                type_data['success_rate'] = round(
-                    (type_data['total_success'] / type_data['total_participants']) *
-                    100, 2)
-            else:
-                type_data['success_rate'] = 0.0
-
-        return jsonify({
-            'success': True,
-            'year': year,
-            'education_types': education_types,
-            'total_periods': len(periods)
-        })
-
+ 
+        result = period_service.get_periods_with_statistics(year)
+        return jsonify(result)
+ 
     except Exception as e:
         print(f"교육 기간 통계 조회 실패: {str(e)}")
         return jsonify({
