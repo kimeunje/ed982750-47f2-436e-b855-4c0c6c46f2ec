@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, make_response
 from app.services.phishing_training_service import PhishingTrainingService
 from app.services.phishing_training_period_service import PhishingTrainingPeriodService
+from app.utils.database import execute_query
 from app.utils.decorators import (
     admin_required,
     handle_exceptions,
@@ -10,6 +11,7 @@ from app.utils.decorators import (
     token_required,
 )
 from app.utils.constants import HTTP_STATUS
+from urllib.parse import quote
 import logging
 
 logger = logging.getLogger(__name__)
@@ -329,20 +331,21 @@ def delete_training_record(record_id):
         )
 
 
-@training_bp.route("/bulk-upload", methods=["POST"])
+@training_bp.route("/bulk-upload/preflight", methods=["POST"])
 @admin_required
 @handle_exceptions
-def bulk_upload():
-    """훈련 결과 일괄 업로드"""
+@validate_json(["period_id", "records"])
+def bulk_upload_preflight():
+    """
+    일괄 업로드 사전 검증 (실제 저장 없음)
+    - 각 레코드별로 사용자 매칭 여부 확인
+    - 기존 기록(업데이트 대상) vs 신규 기록 구분
+    - 사용자를 찾을 수 없는 행 목록
+    """
     try:
-        if "file" not in request.files:
-            return (
-                jsonify({"error": "파일이 업로드되지 않았습니다."}),
-                HTTP_STATUS["BAD_REQUEST"],
-            )
-
-        file = request.files["file"]
-        period_id = request.form.get("period_id", type=int)
+        data = request.json
+        period_id = data.get("period_id")
+        records = data.get("records", [])
 
         if not period_id:
             return (
@@ -350,13 +353,48 @@ def bulk_upload():
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
-        if file.filename == "":
+        result = training_service.preflight_bulk_upload(period_id, records)
+
+        if result.get("success"):
+            return jsonify(result)
+        else:
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logger.error(f"업로드 사전 검증 오류: {str(e)}")
+        return (
+            jsonify({"error": f"사전 검증 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
+@training_bp.route("/bulk-upload", methods=["POST"])
+@admin_required
+@handle_exceptions
+@validate_json(["period_id", "records"])
+def bulk_upload():
+    """훈련 결과 일괄 업로드 (JSON, 교육 관리와 동일한 방식)"""
+    try:
+        data = request.json
+        period_id = data.get("period_id")
+        records = data.get("records", [])
+
+        if not period_id:
             return (
-                jsonify({"error": "파일이 선택되지 않았습니다."}),
+                jsonify({"error": "훈련 기간을 선택해주세요."}),
                 HTTP_STATUS["BAD_REQUEST"],
             )
 
-        result = training_service.process_excel_upload(file, period_id)
+        if not records:
+            return (
+                jsonify({"error": "업로드할 기록이 없습니다."}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+
+        uploaded_by = getattr(request, "current_user", {}).get("user_id", "admin") \
+            if hasattr(request, "current_user") else "admin"
+
+        result = training_service.process_json_upload(period_id, records, uploaded_by)
 
         if result["success"]:
             return jsonify(result)
@@ -367,6 +405,114 @@ def bulk_upload():
         logger.error(f"일괄 업로드 오류: {str(e)}")
         return (
             jsonify({"error": f"업로드 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
+@training_bp.route("/template/download", methods=["GET"])
+@admin_required
+@handle_exceptions
+def download_template():
+    """업로드용 CSV 템플릿 다운로드"""
+    try:
+        csv_data = training_service.get_upload_template()
+
+        csv_bytes = csv_data.encode("utf-8")
+        response = make_response(csv_bytes)
+
+        response.headers["Content-Type"] = "text/csv; charset=utf-8"
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
+        filename = "모의훈련_업로드_템플릿.csv"
+        encoded_filename = quote(filename.encode("utf-8"))
+        response.headers["Content-Disposition"] = (
+            f"attachment; "
+            f"filename*=UTF-8''{encoded_filename}; "
+            f'filename="phishing_training_template.csv"'
+        )
+
+        return response
+    except Exception as e:
+        logger.error(f"템플릿 다운로드 오류: {str(e)}")
+        return (
+            jsonify({"error": f"템플릿 다운로드 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
+@training_bp.route("/add-record", methods=["POST"])
+@admin_required
+@handle_exceptions
+def add_training_record():
+    """훈련 기록 단일 등록 (필수: period_id, user_id, training_result)"""
+    try:
+        data = request.json
+
+        required_fields = ["period_id", "user_id", "training_result"]
+        missing = [f for f in required_fields if not data.get(f)]
+        if missing:
+            return (
+                jsonify({"error": f"필수 필드 누락: {', '.join(missing)}"}),
+                HTTP_STATUS["BAD_REQUEST"],
+            )
+
+        result = training_service.add_single_record(data)
+
+        if result["success"]:
+            return jsonify(result), HTTP_STATUS["CREATED"]
+        else:
+            return jsonify(result), HTTP_STATUS["BAD_REQUEST"]
+
+    except Exception as e:
+        logger.error(f"훈련 기록 등록 오류: {str(e)}")
+        return (
+            jsonify({"error": f"등록 실패: {str(e)}"}),
+            HTTP_STATUS["INTERNAL_SERVER_ERROR"],
+        )
+
+
+@training_bp.route("/search-users", methods=["GET"])
+@admin_required
+@handle_exceptions
+def search_users_for_training():
+    """훈련 기록 등록을 위한 사용자 검색"""
+    query_str = request.args.get("q", "").strip()
+
+    if not query_str or len(query_str) < 1:
+        return jsonify({"users": []})
+
+    try:
+        users = execute_query(
+            """
+            SELECT uid, user_id, username, department, mail
+            FROM users
+            WHERE (username LIKE %s OR department LIKE %s OR user_id LIKE %s OR mail LIKE %s)
+            ORDER BY username
+            LIMIT 20
+            """,
+            (f"%{query_str}%", f"%{query_str}%", f"%{query_str}%", f"%{query_str}%"),
+            fetch_all=True,
+        )
+
+        return jsonify({
+            "users": [
+                {
+                    "uid": u["uid"],
+                    "user_id": u.get("user_id"),
+                    "username": u["username"],
+                    "department": u.get("department", ""),
+                    "mail": u.get("mail", ""),
+                }
+                for u in (users or [])
+            ]
+        })
+
+    except Exception as e:
+        logger.error(f"사용자 검색 오류: {str(e)}")
+        return (
+            jsonify({"error": f"검색 실패: {str(e)}"}),
             HTTP_STATUS["INTERNAL_SERVER_ERROR"],
         )
 
