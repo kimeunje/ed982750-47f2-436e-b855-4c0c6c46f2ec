@@ -219,6 +219,14 @@
   background-color: #eef2ff;
 }
 
+.btn-export {
+  border-color: #10b981;
+  color: #059669;
+}
+.btn-export:hover {
+  background-color: #ecfdf5;
+}
+
 .btn-template {
   border-color: #f59e0b;
   color: #d97706;
@@ -238,6 +246,90 @@
 .btn-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== 수정 모달 섹션 (모의훈련과 동일) ===== */
+.readonly-section {
+  margin-bottom: 1.25rem;
+  padding: 14px 16px;
+  background-color: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.readonly-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.readonly-section .form-input[readonly] {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.readonly-section .form-group {
+  margin-bottom: 0.75rem;
+}
+
+.readonly-section .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.editable-section {
+  margin-bottom: 1.25rem;
+  padding: 14px 16px;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.editable-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4056b7;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.editable-section .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.period-completed-warning {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.period-completed-warning .warning-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.period-completed-warning .warning-content {
+  flex: 1;
+}
+
+.period-completed-warning .warning-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 2px;
+}
+
+.period-completed-warning .warning-desc {
+  font-size: 12px;
+  color: #b45309;
+  line-height: 1.5;
 }
 
 /* ===== 테이블 헤더 필터/정렬 (사용자 관리와 동일) ===== */
@@ -690,55 +782,71 @@
   margin: 0;
 }
 
-/* 일괄 작업 바 */
-.bulk-actions {
+/* ===== 일괄 작업 바 (모의훈련과 동일 패턴) ===== */
+.bulk-actions-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
   padding: 10px 16px;
-  background-color: #eef2ff;
+  background-color: var(--subtle-blue, #eef1fd);
   border-bottom: 1px solid #c7d2fe;
+  flex-wrap: wrap;
 }
 
-.select-all {
+.bulk-selected-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color, #4056b7);
+}
+
+.bulk-actions-buttons {
   display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #374151;
-  cursor: pointer;
-}
-
-.selected-count {
-  color: #4f46e5;
-  font-size: 13px;
-  font-weight: 500;
-  margin-left: auto;
 }
 
 .bulk-btn {
   padding: 6px 12px;
-  border: 1px solid #c7d2fe;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   background: white;
-  color: #4f46e5;
+  color: #374151;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 
 .bulk-btn:hover {
-  background-color: #eef2ff;
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
 }
 
-.bulk-btn.danger {
+.bulk-btn-danger {
   border-color: #fecaca;
   color: #dc2626;
 }
 
-.bulk-btn.danger:hover {
+.bulk-btn-danger:hover {
   background-color: #fef2f2;
+  border-color: #dc2626;
+}
+
+.bulk-btn-clear {
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.bulk-btn-clear:hover {
+  color: #374151;
 }
 
 /* 필터 영역 (테이블 내) */
@@ -798,6 +906,10 @@
 
 /* 테이블 컨테이너 */
 .table-container {
+  overflow-x: auto;
+}
+
+.data-table-container {
   overflow-x: auto;
 }
 
@@ -1666,6 +1778,103 @@
   font-weight: 500;
 }
 
+/* ===== 필드 안내 (일괄 등록 모달, 모의훈련과 동일) ===== */
+.field-guide {
+  margin-top: 1rem;
+  padding: 14px 16px;
+  background-color: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.field-guide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.field-guide-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.template-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background-color: white;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #d97706;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.template-download-btn:hover {
+  background-color: #fffbeb;
+  border-color: #d97706;
+}
+
+.template-download-btn:active {
+  transform: scale(0.98);
+}
+
+.field-guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.field-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 42px;
+  text-align: center;
+}
+
+.field-badge.required {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.field-badge.optional {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.field-names {
+  color: #374151;
+  font-weight: 500;
+}
+
+.field-guide-note {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+  padding-left: 2px;
+}
+
+.field-guide-note strong {
+  color: #4056b7;
+  font-weight: 600;
+}
+
 /* 업로드 미리보기 통계 */
 .summary-stats {
   display: grid;
@@ -1895,6 +2104,46 @@
   font-size: 14px;
 }
 
+/* ===== 빈 기간 안내 (모의훈련과 동일) ===== */
+.empty-periods-notice {
+  text-align: center;
+  padding: 2rem;
+}
+
+.empty-periods-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.empty-periods-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.empty-periods-desc {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.empty-periods-btn {
+  padding: 8px 16px;
+  background-color: var(--primary-color, #4056b7);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.empty-periods-btn:hover {
+  background-color: #3949ab;
+}
+
 /* ===== 토스트 ===== */
 .toast {
   position: fixed;
@@ -2014,15 +2263,14 @@
     gap: 6px;
   }
 
-  .bulk-actions {
+  .bulk-actions-bar {
     flex-direction: column;
     gap: 8px;
     align-items: stretch;
   }
 
-  .selected-count {
-    margin-left: 0;
-    text-align: center;
+  .bulk-actions-buttons {
+    flex-direction: column;
   }
 
   .modal-content {

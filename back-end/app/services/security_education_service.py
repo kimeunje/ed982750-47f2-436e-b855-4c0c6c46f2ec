@@ -361,13 +361,13 @@ class SecurityEducationService:
     def get_new_csv_template(self) -> str:
         """
         ✅ 새로운 CSV 템플릿 생성
-        형식: 이름,부서,수강과정,수료,미수료
+        형식: 이름,부서,수료,미수료,수강과정(선택),교육일(선택)
         """
-        template_content = """이름,부서,수강과정,수료,미수료
-    홍길동,개발팀,온라인교육,2,0
-    김철수,인사팀,오프라인교육,0,1
-    이영희,마케팅팀,종합교육,1,1
-    박민수,IT팀,신입교육,3,0"""
+        template_content = """이름,부서,수료,미수료
+    홍길동,개발팀,2,0
+    김철수,인사팀,0,1
+    이영희,마케팅팀,1,1
+    박민수,IT팀,3,0"""
 
         return template_content
 
@@ -399,13 +399,17 @@ class SecurityEducationService:
                         print(f"[DEBUG] 처리 중 - 행 {idx}: {record}")
 
                         # 필수 필드 검증
-                        required_fields = ["이름", "부서", "수강과정", "수료", "미수료"]
+                        required_fields = ["이름", "부서", "수료", "미수료"]
                         missing_fields = [
                             field for field in required_fields if field not in record
                         ]
 
                         if missing_fields:
                             raise ValueError(f"필수 필드 누락: {', '.join(missing_fields)}")
+
+                        # 수강과정은 선택 필드 (비어있으면 기간명 사용)
+                        if "수강과정" not in record or not record.get("수강과정", "").strip():
+                            record["수강과정"] = ""
 
                         # 사용자 검색
                         user_id = self._find_user_by_name_dept(

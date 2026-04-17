@@ -980,7 +980,7 @@ def update_education_record():
 
         if "education_date" in data:
             update_fields.append("education_date = %s")
-            update_values.append(data["education_date"])
+            update_values.append(data["education_date"] if data["education_date"] else None)
 
         if "notes" in data:
             update_fields.append("notes = %s")

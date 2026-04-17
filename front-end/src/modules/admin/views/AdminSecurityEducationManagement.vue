@@ -122,7 +122,7 @@
                       >
                         <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
                       </button>
-                      <button class="action-btn danger" @click="deletePeriod(period)" :disabled="period.is_completed" title="삭제">
+                      <button class="action-btn danger" @click="deletePeriod(period)" title="삭제">
                         <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
                       </button>
                     </div>
@@ -174,9 +174,9 @@
             <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
             일괄 등록
           </button>
-          <button @click="downloadTemplate" class="btn-action btn-template">
+          <button @click="exportData" class="btn-action btn-export" :disabled="exporting">
             <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
-            템플릿
+            {{ exporting ? '내보내는 중...' : '내보내기' }}
           </button>
           <button @click="loadEducationData" class="btn-action btn-refresh" :disabled="loading">
             <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
@@ -196,16 +196,23 @@
         <button class="filter-clear-all" @click="resetColumnFilters">모두 해제</button>
       </div>
 
-      <!-- 일괄 작업 -->
-      <div class="bulk-actions" v-if="selectedRecords.length > 0">
-        <label class="select-all">
-          <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
-          전체 선택
-        </label>
-        <span class="selected-count">{{ selectedRecords.length }}건 선택됨</span>
-        <button class="bulk-btn" @click="bulkToggleException(true)">일괄 제외</button>
-        <button class="bulk-btn" @click="bulkToggleException(false)">일괄 포함</button>
-        <button class="bulk-btn danger" @click="bulkDeleteRecords">일괄 삭제</button>
+      <!-- 일괄 작업 바 (모의훈련과 동일 구조) -->
+      <div v-if="selectedRecords.length > 0" class="bulk-actions-bar">
+        <span class="bulk-selected-count">✓ {{ selectedRecords.length }}건 선택됨</span>
+        <div class="bulk-actions-buttons">
+          <button class="bulk-btn" @click="bulkToggleException(true)">
+            🚫 일괄 제외
+          </button>
+          <button class="bulk-btn" @click="bulkToggleException(false)">
+            ↩️ 일괄 포함
+          </button>
+          <button class="bulk-btn bulk-btn-danger" @click="bulkDeleteRecords">
+            🗑️ 일괄 삭제
+          </button>
+          <button class="bulk-btn-clear" @click="clearSelection">
+            ✕ 선택 해제
+          </button>
+        </div>
       </div>
 
       <!-- 로딩 -->
@@ -218,14 +225,17 @@
       <div v-else-if="paginatedRecords.length > 0 || filteredRecords.length > 0">
         <!-- 테이블 정보 바 (사용자 관리와 동일) -->
         <div class="table-info">
-          <span class="table-count">총 <strong>{{ filteredRecords.length }}</strong>건<template v-if="hasActiveColumnFilters || searchQuery"> (필터 적용됨)</template></span>
+          <span class="table-count">
+            총 {{ filteredRecords.length }}건 중 {{ paginatedRecords.length }}건 표시
+          </span>
           <select v-model="pageSize" @change="currentPage = 1" class="per-page-select">
+            <option :value="10">10개씩</option>
             <option :value="20">20개씩</option>
             <option :value="50">50개씩</option>
             <option :value="100">100개씩</option>
           </select>
         </div>
-        <div class="table-container">
+        <div class="data-table-container">
           <table class="data-table">
             <thead>
               <tr>
@@ -349,14 +359,18 @@
           </table>
         </div>
 
-        <!-- 페이지네이션 (사용자 관리와 동일) -->
+        <!-- 페이지네이션 (모의훈련과 동일) -->
         <div v-if="totalPages > 1" class="pagination">
-          <button @click="currentPage--" :disabled="currentPage <= 1" class="page-btn">‹ 이전</button>
-          <template v-for="p in paginationPages" :key="p">
-            <span v-if="p === '...'" class="page-ellipsis">…</span>
-            <button v-else @click="currentPage = p" :class="['page-btn', { active: p === currentPage }]">{{ p }}</button>
+          <button class="page-btn" :disabled="currentPage <= 1" @click="currentPage = 1">« 처음</button>
+          <button class="page-btn" :disabled="currentPage <= 1" @click="currentPage--">‹ 이전</button>
+          <template v-for="page in paginationPages" :key="page">
+            <span v-if="page === '...'" class="page-ellipsis">…</span>
+            <button v-else class="page-btn" :class="{ active: currentPage === page }" @click="currentPage = page">
+              {{ page }}
+            </button>
           </template>
-          <button @click="currentPage++" :disabled="currentPage >= totalPages" class="page-btn">다음 ›</button>
+          <button class="page-btn" :disabled="currentPage >= totalPages" @click="currentPage++">다음 ›</button>
+          <button class="page-btn" :disabled="currentPage >= totalPages" @click="currentPage = totalPages">마지막 »</button>
         </div>
       </div>
 
@@ -448,6 +462,33 @@
                 </optgroup>
               </template>
             </select>
+          </div>
+
+          <!-- 필드 안내 (모의훈련과 동일 구조) -->
+          <div class="field-guide">
+            <div class="field-guide-header">
+              <div class="field-guide-title">📋 CSV 필드 안내</div>
+              <button type="button" class="template-download-btn" @click="downloadTemplate">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                템플릿 다운로드
+              </button>
+            </div>
+            <div class="field-guide-content">
+              <div class="field-row">
+                <span class="field-badge required">필수</span>
+                <span class="field-names">이름, 부서, 수료, 미수료</span>
+              </div>
+              <div class="field-row">
+                <span class="field-badge optional">선택</span>
+                <span class="field-names">수강과정, 교육일</span>
+              </div>
+              <div class="field-guide-note">
+                💡 수료/미수료는 숫자로 입력하세요. (예: 수료 1, 미수료 0)
+              </div>
+              <div class="field-guide-note">
+                💡 수강과정에는 교육 과목명을 입력합니다. (예: <strong>정보보호 기본교육</strong>, <strong>개인정보보호 교육</strong>)
+              </div>
+            </div>
           </div>
 
           <!-- 파일 업로드 영역 -->
@@ -558,6 +599,17 @@
         </div>
         <form @submit.prevent="saveNewRecord">
           <div class="modal-body">
+            <!-- 빈 상태: 기간 없음 -->
+            <div v-if="!hasAvailablePeriods" class="empty-periods-notice">
+              <div class="empty-periods-icon">📅</div>
+              <div class="empty-periods-title">등록 가능한 교육 기간이 없습니다</div>
+              <div class="empty-periods-desc">먼저 교육 기간을 생성해주세요.</div>
+              <button type="button" class="empty-periods-btn" @click="goToCreatePeriod">
+                + 교육 기간 추가
+              </button>
+            </div>
+
+            <template v-else>
             <!-- 교육 기간 선택 -->
             <div class="form-group">
               <label>교육 기간 <span class="required">*</span></label>
@@ -659,13 +711,14 @@
               <label>비고</label>
               <textarea v-model="newRecordForm.notes" class="form-input" rows="2" placeholder="추가 정보나 비고사항"></textarea>
             </div>
+            </template>
           </div>
           <div class="modal-footer">
             <button type="button" class="cancel-button" @click="closeAddRecordModal">취소</button>
             <button
               type="submit"
               class="save-button"
-              :disabled="saving || !newRecordForm.period_id || !newRecordForm.user_id"
+              :disabled="saving || !hasAvailablePeriods || !newRecordForm.period_id || !newRecordForm.user_id"
             >
               {{ saving ? '저장 중...' : '추가' }}
             </button>
@@ -683,53 +736,92 @@
         </div>
         <form @submit.prevent="saveRecord">
           <div class="modal-body">
-            <div class="form-row">
-              <div class="form-group">
-                <label>사용자</label>
-                <input type="text" :value="editingRecord.username" class="form-input" disabled />
-              </div>
-              <div class="form-group">
-                <label>부서</label>
-                <input type="text" :value="editingRecord.department" class="form-input" disabled />
+            <!-- 완료된 기간 경고 배너 -->
+            <div v-if="editingRecord.period_is_completed" class="period-completed-warning">
+              <div class="warning-icon">⚠️</div>
+              <div class="warning-content">
+                <div class="warning-title">이 교육 기간은 완료 처리되었습니다</div>
+                <div class="warning-desc">수정 사항이 점수 산정에 영향을 줄 수 있으니 신중하게 진행해주세요.</div>
               </div>
             </div>
 
-            <div class="form-group">
-              <label>교육과정</label>
-              <input type="text" v-model="editingRecord.course_name" class="form-input" placeholder="교육과정명" />
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>수료 건수</label>
-                <input type="number" v-model.number="editingRecord.completed_count" class="form-input" min="0" placeholder="0" />
+            <!-- 참고 정보 (readonly) -->
+            <div class="readonly-section">
+              <div class="readonly-section-title">📄 기록 정보</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>사용자</label>
+                  <input type="text" :value="editingRecord.username" class="form-input" readonly />
+                </div>
+                <div class="form-group">
+                  <label>부서</label>
+                  <input type="text" :value="editingRecord.department" class="form-input" readonly />
+                </div>
               </div>
               <div class="form-group">
-                <label>미수료 건수</label>
-                <input type="number" v-model.number="editingRecord.incomplete_count" class="form-input" min="0" placeholder="0" />
+                <label>교육 기간</label>
+                <input
+                  type="text"
+                  :value="`${editingRecord.period_name || ''}${editingRecord.education_type ? ' (' + editingRecord.education_type + ')' : ''}`"
+                  class="form-input"
+                  readonly
+                />
               </div>
             </div>
 
-            <div class="form-group">
-              <label>교육일</label>
-              <input type="date" v-model="editingRecord.education_date" class="form-input" />
+            <!-- 편집 가능 필드 -->
+            <div class="editable-section">
+              <div class="editable-section-title">✏️ 상세 정보</div>
+
+              <div class="form-group">
+                <label>교육과정</label>
+                <input type="text" v-model="editingRecord.course_name" class="form-input" placeholder="교육과정명" />
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>수료 건수 <span class="required">*</span></label>
+                  <input type="number" v-model.number="editingRecord.completed_count" class="form-input" min="0" placeholder="0" />
+                </div>
+                <div class="form-group">
+                  <label>미수료 건수 <span class="required">*</span></label>
+                  <input type="number" v-model.number="editingRecord.incomplete_count" class="form-input" min="0" placeholder="0" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>교육일</label>
+                <input type="date" v-model="editingRecord.education_date" class="form-input" />
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="editingRecord.exclude_from_scoring" />
-                점수 산정에서 제외
-              </label>
-            </div>
-
-            <div v-if="editingRecord.exclude_from_scoring" class="form-group">
-              <label>제외 사유</label>
-              <input type="text" v-model="editingRecord.exclude_reason" class="form-input" placeholder="제외 사유를 입력하세요" />
-            </div>
-
-            <div class="form-group">
-              <label>비고</label>
-              <textarea v-model="editingRecord.notes" class="form-input" rows="3" placeholder="추가 정보나 비고사항"></textarea>
+            <!-- 점수 관리 -->
+            <div class="editable-section">
+              <div class="editable-section-title">⚙️ 점수 관리</div>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="editingRecord.exclude_from_scoring" />
+                  점수 산정에서 제외
+                </label>
+              </div>
+              <div v-if="editingRecord.exclude_from_scoring" class="form-group">
+                <label>제외 사유</label>
+                <input
+                  type="text"
+                  v-model="editingRecord.exclude_reason"
+                  class="form-input"
+                  placeholder="제외 사유를 입력하세요"
+                />
+              </div>
+              <div class="form-group">
+                <label>비고</label>
+                <textarea
+                  v-model="editingRecord.notes"
+                  class="form-input"
+                  rows="2"
+                  placeholder="메모를 입력하세요"
+                ></textarea>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -915,6 +1007,7 @@ const showBulkUploadModal = ref(false)
 const selectedFile = ref(null)
 const uploadPreview = ref([])
 const uploading = ref(false)
+const exporting = ref(false)
 const selectedUploadPeriod = ref('')
 const availablePeriodsForUpload = ref({})
 const validationWarnings = ref([])
@@ -997,6 +1090,13 @@ const incompleteCount = computed(() => {
 const overallCompletionRate = computed(() => {
   if (filteredRecords.value.length === 0) return 0
   return ((completedCount.value / filteredRecords.value.length) * 100).toFixed(1)
+})
+
+const hasAvailablePeriods = computed(() => {
+  if (!periodStatus.value.education_types) return false
+  return Object.values(periodStatus.value.education_types).some(
+    (td) => td.periods && td.periods.some((p) => !p.is_completed)
+  )
 })
 
 const departmentOptions = computed(() => {
@@ -1604,7 +1704,7 @@ const normalizeFieldNames = (records) => {
       if (processed.education_type) processed.education_type = processed.education_type.toString().trim()
       return processed
     })
-    .filter((r) => r.username && r.department && r.education_type)
+    .filter((r) => r.username && r.department)
 }
 
 /**
@@ -1619,7 +1719,7 @@ const validateUploadData = (records) => {
     return { warnings, errors }
   }
 
-  const requiredFields = ['username', 'department', 'education_type', 'completed_count', 'incomplete_count']
+  const requiredFields = ['username', 'department', 'completed_count', 'incomplete_count']
 
   for (let i = 0; i < records.length; i++) {
     const record = records[i]
@@ -1676,6 +1776,50 @@ const downloadTemplate = async () => {
   }
 }
 
+// ===== 내보내기 =====
+
+/**
+ * 교육 데이터 CSV 내보내기 (현재 선택된 연도 전체)
+ */
+const exportData = async () => {
+  if (exporting.value) return
+  exporting.value = true
+
+  try {
+    const url = `/api/security-education/export?year=${selectedYear.value}&format=csv`
+    const response = await fetch(url, { credentials: 'include' })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: '내보내기 실패' }))
+      throw new Error(errorData.error || '내보내기 실패')
+    }
+
+    const blob = await response.blob()
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = downloadUrl
+    a.download = `정보보호교육_${selectedYear.value}년.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(downloadUrl)
+
+    displayToast(`${selectedYear.value}년 교육 데이터가 다운로드되었습니다.`, 'success')
+  } catch (err) {
+    console.error('내보내기 오류:', err)
+    displayToast(err.message || '내보내기 실패', 'error')
+  } finally {
+    exporting.value = false
+  }
+}
+
+// ===== 선택 해제 =====
+
+const clearSelection = () => {
+  selectedRecords.value = []
+  selectAll.value = false
+}
+
 /**
  * 일괄 업로드 실행 (클라이언트 파싱 → JSON 전송)
  */
@@ -1699,7 +1843,7 @@ const uploadBulkData = async () => {
       records: uploadPreview.value.map((record) => ({
         이름: record.username,
         부서: record.department,
-        수강과정: record.education_type,
+        수강과정: record.education_type || '',
         수료: record.completed_count,
         미수료: record.incomplete_count,
       })),
@@ -1758,23 +1902,18 @@ const closeBulkUploadModal = () => {
 
 const editRecord = (record) => {
   editingRecord.value = {
-    education_id: record.education_id,
-    user_id: record.user_id,
-    username: record.username,
-    department: record.department,
-    education_year: record.education_year,
-    education_type: record.education_type,
-    education_date: record.education_date,
-    course_name: record.course_name,
+    ...record,
+    // null이면 빈 문자열로
+    course_name: record.course_name || '',
     completed_count: record.completed_count || 0,
     incomplete_count: record.incomplete_count || 0,
-    total_courses: record.total_courses || 1,
-    completion_rate: record.completion_rate || 0,
-    completion_status: record.completion_status,
-    exclude_from_scoring: record.exclude_from_scoring,
-    exclude_reason: record.exclude_reason,
-    notes: record.notes,
-    period_id: record.period_id,
+    education_date: record.education_date || '',
+    exclude_reason: record.exclude_reason || '',
+    notes: record.notes || '',
+    exclude_from_scoring: !!record.exclude_from_scoring,
+    period_is_completed: !!record.period_completed,
+    period_name: record.period_name || '',
+    education_type: record.education_type || '',
   }
   showEditModal.value = true
 }
@@ -1864,6 +2003,12 @@ const closeAddRecordModal = () => {
   userSearchResults.value = []
   showUserDropdown.value = false
   userSearchLoading.value = false
+}
+
+const goToCreatePeriod = () => {
+  showAddRecordModal.value = false
+  showBulkUploadModal.value = false
+  openPeriodModal()
 }
 
 const searchUsers = () => {
@@ -2220,13 +2365,6 @@ watch(selectedYear, () => {
   loadAvailablePeriodsForUpload()
 })
 
-watch(selectedUploadPeriod, (newValue, oldValue) => {
-  if (newValue !== oldValue && selectedFile.value) {
-    selectedFile.value = null
-    uploadPreview.value = []
-    displayToast('교육 기간이 변경되어 파일 선택을 초기화했습니다.', 'info')
-  }
-})
 </script>
 
 <style scoped>
