@@ -729,11 +729,13 @@
 }
 
 .data-table tbody tr.excluded {
-  background-color: #fffbeb;
+  background-color: #f9fafb;
+  opacity: 0.55;
 }
 
 .data-table tbody tr.excluded:hover {
-  background-color: #fef3c7;
+  background-color: #f3f4f6;
+  opacity: 0.75;
 }
 
 /* 컬럼별 스타일 */

@@ -102,10 +102,6 @@
                   </td>
                   <td class="pt-col-actions">
                     <div class="action-buttons">
-                      <!-- 상세통계 -->
-                      <button class="action-btn" title="상세 통계" @click="viewPeriodStats(period)">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5h-2v12h2V2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/></svg>
-                      </button>
                       <!-- 완료/재개 -->
                       <button
                         v-if="!period.is_completed"
@@ -386,16 +382,16 @@
 
       <!-- 페이지네이션 -->
       <div v-if="totalPages > 1" class="pagination">
-        <button class="page-btn" :disabled="currentPage <= 1" @click="currentPage = 1">«</button>
-        <button class="page-btn" :disabled="currentPage <= 1" @click="currentPage--">‹</button>
+        <button class="page-btn" :disabled="currentPage <= 1" @click="currentPage = 1">« 처음</button>
+        <button class="page-btn" :disabled="currentPage <= 1" @click="currentPage--">‹ 이전</button>
         <template v-for="page in paginationPages" :key="page">
-          <span v-if="page === '...'" class="page-ellipsis">...</span>
+          <span v-if="page === '...'" class="page-ellipsis">…</span>
           <button v-else class="page-btn" :class="{ active: currentPage === page }" @click="currentPage = page">
             {{ page }}
           </button>
         </template>
-        <button class="page-btn" :disabled="currentPage >= totalPages" @click="currentPage++">›</button>
-        <button class="page-btn" :disabled="currentPage >= totalPages" @click="currentPage = totalPages">»</button>
+        <button class="page-btn" :disabled="currentPage >= totalPages" @click="currentPage++">다음 ›</button>
+        <button class="page-btn" :disabled="currentPage >= totalPages" @click="currentPage = totalPages">마지막 »</button>
       </div>
     </div>
 
@@ -1287,15 +1283,55 @@ const deletePeriod = async (period) => {
       credentials: 'include',
     })
     const result = await response.json()
+
     if (response.ok) {
       displayToast(result.message || '삭제되었습니다.', 'success')
       await loadPeriodStatus()
       await loadTrainingData()
-    } else {
-      throw new Error(result.error || result.message || '삭제 실패')
+      return
     }
+
+    // 훈련 기록이 있어서 확인이 필요한 경우
+    if (response.status === 400 && result.requires_confirmation) {
+      const forceDelete = confirm(
+        `${result.error}\n\n` +
+        `관련 훈련 기록 ${result.training_count}건을 포함하여 완전히 삭제하시겠습니까?\n\n` +
+        `※ 이 작업은 되돌릴 수 없습니다.`
+      )
+      if (forceDelete) {
+        await forceDeletePeriod(period.period_id)
+      } else {
+        displayToast('삭제가 취소되었습니다.', 'info')
+      }
+      return
+    }
+
+    // 기타 에러
+    throw new Error(result.error || result.message || '삭제 실패')
   } catch (err) {
     console.error('기간 삭제 오류:', err)
+    displayToast(err.message, 'error')
+  }
+}
+
+/**
+ * 훈련 기간 강제 삭제 (관련 훈련 기록 포함)
+ */
+const forceDeletePeriod = async (periodId) => {
+  try {
+    const response = await fetch(`/api/phishing-training/periods/${periodId}/force-delete`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.error || result.message || '강제 삭제 실패')
+
+    displayToast(result.message || '삭제되었습니다.', 'success')
+    await loadPeriodStatus()
+    await loadTrainingData()
+  } catch (err) {
+    console.error('강제 삭제 오류:', err)
     displayToast(err.message, 'error')
   }
 }
@@ -1305,7 +1341,7 @@ const completePeriod = async (period) => {
 
   try {
     const response = await fetch(`/api/phishing-training/periods/${period.period_id}/complete`, {
-      method: 'PUT',
+      method: 'POST',
       credentials: 'include',
     })
     const result = await response.json()
@@ -1322,7 +1358,7 @@ const reopenPeriod = async (period) => {
 
   try {
     const response = await fetch(`/api/phishing-training/periods/${period.period_id}/reopen`, {
-      method: 'PUT',
+      method: 'POST',
       credentials: 'include',
     })
     const result = await response.json()
@@ -1332,11 +1368,6 @@ const reopenPeriod = async (period) => {
   } catch (err) {
     displayToast(err.message, 'error')
   }
-}
-
-const viewPeriodStats = (period) => {
-  // 상세 통계 - 추후 모달로 구현 가능
-  displayToast(`${period.period_name} 상세 통계 조회`, 'success')
 }
 
 // ===== 훈련 데이터 =====
@@ -2314,8 +2345,12 @@ const deleteRecord = async (record) => {
 }
 
 const toggleExclude = async (record) => {
+  const newValue = !record.exclude_from_scoring
+  const actionText = newValue ? '제외' : '포함'
+
+  if (!confirm(`${record.username}의 훈련 기록을 점수 산정에서 ${actionText} 처리하시겠습니까?`)) return
+
   try {
-    const newValue = !record.exclude_from_scoring
     const response = await fetch(`/api/phishing-training/records/${record.training_id}/exclude`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
